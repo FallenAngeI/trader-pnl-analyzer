@@ -17,6 +17,29 @@ interface TraderData {
   winRate: number;
 }
 
+interface TokenHolding {
+  symbol: string;
+  name: string;
+  amount: number;
+  valueUsd: number;
+  logo?: string;
+}
+
+interface DefiTrade {
+  protocol: string;
+  type: string;
+  valueUsd: number;
+  timestamp: number;
+}
+
+interface TokenPnLData {
+  symbol: string;
+  name: string;
+  pnl: number;
+  percentageChange: number;
+  logo?: string;
+}
+
 export const fetchTraderData = async (walletAddress: string): Promise<TraderData> => {
   try {
     // Fetch transactions using the Parse Transaction History endpoint
@@ -76,6 +99,78 @@ export const fetchTraderData = async (walletAddress: string): Promise<TraderData
     };
   } catch (error) {
     console.error('Error fetching trader data:', error);
+    throw error;
+  }
+};
+
+export const fetchTokenBalances = async (address: string): Promise<TokenHolding[]> => {
+  try {
+    const response = await fetch(
+      `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${HELIUS_API_KEY}`
+    );
+    const data = await response.json();
+    
+    return data.tokens.map((token: any) => ({
+      symbol: token.symbol || "Unknown",
+      name: token.name || "Unknown Token",
+      amount: token.amount || 0,
+      valueUsd: token.valueUsd || 0,
+      logo: token.logo,
+    }));
+  } catch (error) {
+    console.error("Error fetching token balances:", error);
+    throw error;
+  }
+};
+
+export const fetchDefiTrades = async (address: string): Promise<DefiTrade[]> => {
+  try {
+    const response = await fetch(
+      `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${HELIUS_API_KEY}`
+    );
+    const data = await response.json();
+    
+    return data
+      .filter((tx: any) => tx.type === "SWAP" || tx.type === "LIQUIDITY")
+      .map((tx: any) => ({
+        protocol: tx.protocol || "Unknown Protocol",
+        type: tx.type || "Unknown",
+        valueUsd: tx.valueUsd || 0,
+        timestamp: tx.timestamp || Date.now(),
+      }));
+  } catch (error) {
+    console.error("Error fetching DeFi trades:", error);
+    throw error;
+  }
+};
+
+export const fetchTokenPnL = async (address: string, period: string): Promise<TokenPnLData[]> => {
+  try {
+    // Convert period to timestamp
+    const now = Date.now();
+    const periodMap: { [key: string]: number } = {
+      "1d": 24 * 60 * 60 * 1000,
+      "3d": 3 * 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      "30d": 30 * 24 * 60 * 60 * 1000,
+    };
+    
+    const startTime = now - periodMap[period];
+    
+    const response = await fetch(
+      `https://api.helius.xyz/v0/addresses/${address}/portfolio?api-key=${HELIUS_API_KEY}&startTime=${startTime}&endTime=${now}`
+    );
+    const data = await response.json();
+    
+    return data.tokens.map((token: any) => ({
+      symbol: token.symbol || "Unknown",
+      name: token.name || "Unknown Token",
+      pnl: token.pnl || 0,
+      percentageChange: token.percentageChange || 0,
+      logo: token.logo,
+    }));
+  } catch (error) {
+    console.error("Error fetching token PnL:", error);
     throw error;
   }
 };
