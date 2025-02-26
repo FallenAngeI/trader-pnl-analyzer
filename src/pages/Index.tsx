@@ -4,7 +4,6 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StatsCard } from "@/components/StatsCard";
 import { TraderRow } from "@/components/TraderRow";
-import { WalletAnalytics } from "@/components/WalletAnalytics";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTraderData } from "@/utils/api";
 import { toast } from "sonner";
@@ -76,22 +75,20 @@ const Index = () => {
           />
         </form>
 
-        {/* Traders List and Analytics */}
-        <div className="space-y-8">
+        {/* Traders List */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold mb-6">Trader Details</h2>
           {isLoading && (
             <div className="text-center text-gray-400">Loading trader data...</div>
           )}
           {traderData && (
-            <>
-              <TraderRow
-                rank={1}
-                address={traderData.address}
-                pnl={traderData.pnl}
-                trades={traderData.trades}
-                winRate={traderData.winRate}
-              />
-              <WalletAnalytics address={traderData.address} />
-            </>
+            <TraderRow
+              rank={1}
+              address={traderData.address}
+              pnl={traderData.pnl}
+              trades={traderData.trades}
+              winRate={traderData.winRate}
+            />
           )}
         </div>
       </div>
