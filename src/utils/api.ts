@@ -19,31 +19,31 @@ interface TraderData {
 
 export const fetchTraderData = async (walletAddress: string): Promise<TraderData> => {
   try {
-    // Fetch transactions from Helius
+    // Fetch transactions from Helius (using correct endpoint)
     const heliusResponse = await fetch(
-      `https://mainnet.helius-rpc.com/v0/transactions?api-key=${HELIUS_API_KEY}&account=${walletAddress}`
+      `https://api.helius.xyz/v0/addresses/${walletAddress}/transactions?api-key=${HELIUS_API_KEY}`
     );
     const heliusData = await heliusResponse.json();
 
-    // Fetch additional data from Solscan
+    // Fetch additional data from Solscan (with correct auth header)
     const solscanResponse = await fetch(
       `https://pro-api.solscan.io/v1.0/account/transactions?account=${walletAddress}`,
       {
         headers: {
-          "Authorization": `Bearer ${SOLSCAN_API_KEY}`
+          "token": SOLSCAN_API_KEY
         }
       }
     );
     const solscanData = await solscanResponse.json();
 
-    // Calculate metrics from the transaction data
-    const transactions = heliusData.map((tx: any) => ({
-      signature: tx.signature,
-      timestamp: tx.timestamp,
+    // Handle empty response case
+    const transactions = (heliusData?.transactions || []).map((tx: any) => ({
+      signature: tx.signature || tx.id || "",
+      timestamp: tx.timestamp || Date.now(),
       value: tx.value || 0,
     }));
 
-    // Calculate PnL and other metrics
+    // Calculate metrics
     const pnl = transactions.reduce((acc: number, tx: Transaction) => acc + tx.value, 0);
     const trades = transactions.length;
     const winningTrades = transactions.filter(tx => tx.value > 0).length;
