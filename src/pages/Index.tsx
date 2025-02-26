@@ -4,21 +4,35 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StatsCard } from "@/components/StatsCard";
 import { TraderRow } from "@/components/TraderRow";
-
-const mockTraders = [
-  { address: "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH", pnl: 125000, trades: 156, winRate: 68 },
-  { address: "2YmHuRiGgkU4S3bwYxEYMFJ4atRxZrHZp6QWzWgkf17x", pnl: 85000, trades: 98, winRate: 72 },
-  { address: "8MVwRhtiqoauQTYh8j8LoKFnNABWzLCj7hW2KqJq6EXr", pnl: -32000, trades: 45, winRate: 42 },
-];
+import { useQuery } from "@tanstack/react-query";
+import { fetchTraderData } from "@/utils/api";
+import { toast } from "sonner";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchedAddress, setSearchedAddress] = useState("");
+
+  const { data: traderData, isLoading } = useQuery({
+    queryKey: ['trader', searchedAddress],
+    queryFn: () => searchedAddress ? fetchTraderData(searchedAddress) : null,
+    enabled: !!searchedAddress,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setSearchedAddress(searchQuery.trim());
+    } else {
+      toast.error("Please enter a valid wallet address");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Hero Section */}
-        <div className="text-center space-y-4 animate-float">
+        <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-bold">
             Solana Trader Analytics
           </h1>
@@ -50,7 +64,7 @@ const Index = () => {
         </div>
 
         {/* Search Section */}
-        <div className="relative max-w-2xl mx-auto">
+        <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
@@ -59,21 +73,23 @@ const Index = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
 
         {/* Traders List */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-6">Top Traders</h2>
-          {mockTraders.map((trader, index) => (
+          <h2 className="text-2xl font-bold mb-6">Trader Details</h2>
+          {isLoading && (
+            <div className="text-center text-gray-400">Loading trader data...</div>
+          )}
+          {traderData && (
             <TraderRow
-              key={trader.address}
-              rank={index + 1}
-              address={trader.address}
-              pnl={trader.pnl}
-              trades={trader.trades}
-              winRate={trader.winRate}
+              rank={1}
+              address={traderData.address}
+              pnl={traderData.pnl}
+              trades={traderData.trades}
+              winRate={traderData.winRate}
             />
-          ))}
+          )}
         </div>
       </div>
     </div>

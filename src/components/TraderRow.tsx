@@ -12,6 +12,13 @@ interface TraderRowProps {
 
 export function TraderRow({ rank, address, pnl, trades, winRate }: TraderRowProps) {
   const isPositive = pnl >= 0;
+  const formatPnL = (value: number) => {
+    const absValue = Math.abs(value);
+    if (absValue >= 1e9) return `${(absValue / 1e9).toFixed(2)}B`;
+    if (absValue >= 1e6) return `${(absValue / 1e6).toFixed(2)}M`;
+    if (absValue >= 1e3) return `${(absValue / 1e3).toFixed(2)}K`;
+    return absValue.toFixed(2);
+  };
   
   return (
     <Card className="p-4 backdrop-blur-sm bg-card/30 border-0 shadow-xl transition-all duration-300 hover:bg-card/40 flex items-center justify-between">
@@ -24,7 +31,7 @@ export function TraderRow({ rank, address, pnl, trades, winRate }: TraderRowProp
           "font-bold",
           isPositive ? "text-profit" : "text-loss"
         )}>
-          {isPositive ? "+" : "-"}${Math.abs(pnl).toLocaleString()}
+          {isPositive ? "+" : "-"}${formatPnL(pnl)}
         </span>
         <span className="text-gray-400">{trades} trades</span>
         <span className="text-gray-400">{winRate}% win rate</span>
