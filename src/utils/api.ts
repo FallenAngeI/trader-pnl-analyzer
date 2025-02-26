@@ -19,29 +19,47 @@ interface TraderData {
 
 export const fetchTraderData = async (walletAddress: string): Promise<TraderData> => {
   try {
-    // Fetch transactions from Helius (using correct endpoint)
+    // Fetch transactions using the Parse Transaction History endpoint
     const heliusResponse = await fetch(
-      `https://api.helius.xyz/v0/addresses/${walletAddress}/transactions?api-key=${HELIUS_API_KEY}`
+      `https://api.helius.xyz/v0/addresses/${walletAddress}/transactions/?api-key=${HELIUS_API_KEY}`
     );
     const heliusData = await heliusResponse.json();
 
-    // Fetch additional data from Solscan (with correct auth header)
-    const solscanResponse = await fetch(
-      `https://pro-api.solscan.io/v1.0/account/transactions?account=${walletAddress}`,
-      {
-        headers: {
-          "token": SOLSCAN_API_KEY
-        }
+    // Process transactions
+    const transactions = (heliusData || []).map((tx: any) => {
+      // Calculate transaction value from token transfers and native transfers
+      let value = 0;
+      
+      // Add up native SOL transfers
+      if (tx.nativeTransfers) {
+        tx.nativeTransfers.forEach((transfer: any) => {
+          if (transfer.fromUserAccount === walletAddress) {
+            value -= transfer.amount;
+          }
+          if (transfer.toUserAccount === walletAddress) {
+            value += transfer.amount;
+          }
+        });
       }
-    );
-    const solscanData = await solscanResponse.json();
 
-    // Handle empty response case
-    const transactions = (heliusData?.transactions || []).map((tx: any) => ({
-      signature: tx.signature || tx.id || "",
-      timestamp: tx.timestamp || Date.now(),
-      value: tx.value || 0,
-    }));
+      // Add up token transfers
+      if (tx.tokenTransfers) {
+        tx.tokenTransfers.forEach((transfer: any) => {
+          if (transfer.fromUserAccount === walletAddress) {
+            value -= Number(transfer.tokenAmount);
+          }
+          if (transfer.toUserAccount === walletAddress) {
+            value += Number(transfer.tokenAmount);
+          }
+        });
+      }
+
+      return {
+        signature: tx.signature || "",
+        timestamp: tx.timestamp || Date.now(),
+        value: value,
+      };
+    });
 
     // Calculate metrics
     const pnl = transactions.reduce((acc: number, tx: Transaction) => acc + tx.value, 0);
